@@ -17,10 +17,10 @@ executable logging-server
   main-is:             Main.hs
   default-language:    Haskell2010
   build-depends:       base >= 4.7 && < 5
-                     , servant-server >= 0.4
-                     , either
-                     , sqlite-simple
-                     , wai
-                     , warp
+                     , servant-server >= 0.4.4.4
                      , aeson
+                     , warp
+                     , wai
                      , time
+                     , either
+                     , transformers
