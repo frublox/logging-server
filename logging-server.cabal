@@ -21,6 +21,7 @@ executable logging-server
                      , aeson
                      , warp
                      , wai
+                     , wai-cors
                      , time
                      , either
                      , transformers

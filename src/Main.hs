@@ -2,6 +2,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Main where
 
@@ -13,6 +14,7 @@ import Data.Aeson
 import Data.Time.Calendar
 
 import Network.Wai
+import Network.Wai.Middleware.Cors
 import Network.Wai.Handler.Warp
 
 import Servant
@@ -36,10 +38,15 @@ instance ToJSON LogInfo
 type LogAPI = "log" :> ReqBody '[JSON] LogInfo :> Post '[JSON] ()
 
 main :: IO ()
-main = run 8081 app
+main = do
+    let port = 3000
+    putStrLn ("Running logging server on port " ++ show port)
+    run port app
 
+-- We're using simpleCors to get around the cross-domain policy
+-- Is it safe? Well, um, maybe..
 app :: Application
-app = serve logAPI server
+app = simpleCors (serve logAPI server)
 
 logAPI :: Proxy LogAPI
 logAPI = Proxy
@@ -55,6 +62,7 @@ logToFile logInfo = do
     withFile "log.txt" AppendMode
         (\fileHandle -> do
             let entry = formatLog logInfo
+            putStrLn entry
             hPutStrLn fileHandle entry)
 
 formatLog :: LogInfo -> String
