@@ -33,16 +33,22 @@ data LogInfo = LogInfo {
 instance FromJSON LogInfo
 instance ToJSON LogInfo
 
-type LogAPI = 
-    "log" :> ReqBody '[JSON] LogInfo :> Post '[JSON] ()
+type LogAPI = "log" :> ReqBody '[JSON] LogInfo :> Post '[JSON] ()
 
-formatLog :: LogInfo -> String
-formatLog logInfo =
-    appName logInfo ++ 
-    " | " ++ show (uuid logInfo) ++ 
-    " | " ++ location logInfo ++
-    " | " ++ platform logInfo ++ " - " ++ model logInfo ++ 
-    " | " ++ messageType logInfo ++ ": " ++ message logInfo
+main :: IO ()
+main = run 8081 app
+
+app :: Application
+app = serve logAPI server
+
+logAPI :: Proxy LogAPI
+logAPI = Proxy
+
+server :: Server LogAPI
+server = doLog
+
+doLog :: LogInfo -> EitherT ServantErr IO ()
+doLog logInfo = liftIO (logToFile logInfo)
 
 logToFile :: LogInfo -> IO ()
 logToFile logInfo = do
@@ -51,18 +57,10 @@ logToFile logInfo = do
             let entry = formatLog logInfo
             hPutStrLn fileHandle entry)
 
-doLog :: LogInfo -> EitherT ServantErr IO ()
-doLog logInfo = do
-    liftIO $ logToFile logInfo
-
-server :: Server LogAPI
-server = doLog
-
-logAPI :: Proxy LogAPI
-logAPI = Proxy
-
-app :: Application
-app = serve logAPI server
-
-main :: IO ()
-main = run 8081 app
+formatLog :: LogInfo -> String
+formatLog logInfo =
+    appName logInfo ++ 
+    " | " ++ show (uuid logInfo) ++ 
+    " | " ++ location logInfo ++
+    " | " ++ platform logInfo ++ " - " ++ model logInfo ++ 
+    " | " ++ messageType logInfo ++ ": " ++ message logInfo
