@@ -12,12 +12,26 @@ category:            Web
 build-type:          Simple
 cabal-version:       >=1.10
 
+library
+  hs-source-dirs:      lib
+  default-language:    Haskell2010
+  exposed-modules:     Data.LogInfo
+                     , Format.Pretty
+                     , Utils.Text
+  build-depends:       base >= 4.7 && < 5
+                     , servant-server >= 0.4.4.4
+                     , text
+                     , spoon
+
+
 executable logging-server
   hs-source-dirs:      src
   main-is:             Main.hs
   default-language:    Haskell2010
   build-depends:       base >= 4.7 && < 5
+                     , logging-server
                      , servant-server >= 0.4.4.4
+                     , text
                      , aeson
                      , warp
                      , wai
@@ -25,3 +39,4 @@ executable logging-server
                      , time
                      , either
                      , transformers
+                     
