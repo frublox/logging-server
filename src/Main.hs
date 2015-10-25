@@ -31,6 +31,8 @@ import Data.LogInfo
 import Format.Pretty
 import Utils.Text (showText)
 
+-- FormUrlEncoded is used over JSON due to the restrictions on
+-- cross-domain requests
 type LogAPI = 
     "log" :> ReqBody '[FormUrlEncoded] LogInfo 
           :> Post '[FormUrlEncoded] ()
