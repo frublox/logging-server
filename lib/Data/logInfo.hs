@@ -39,14 +39,14 @@ data Device = Device {
     model :: Text
 }
 
-type Longitude = Double
 type Latitude = Double
+type Longitude = Double
 
-data Location = Coords Longitude Latitude | UnknownLocation
+data Location = Coords Latitude Longitude | UnknownLocation
 
 instance Pretty Location where
-    prettify (Coords long lat) = 
-        "[" <> showText long <> ", " <> showText lat <> "]"
+    prettify (Coords lat long) = 
+        "[" <> showText lat <> ", " <> showText long <> "]"
     prettify UnknownLocation = "Unknown Location"
 
 data LogInfo = LogInfo {
@@ -89,7 +89,7 @@ instance FromFormUrlEncoded LogInfo where
         location <- do
             case readExtract "location" inputs of
                 Left _ -> return UnknownLocation
-                Right [longitude, latitude] -> return (Coords longitude latitude)
+                Right [latitude, longitude] -> return (Coords latitude longitude)
 
         device <- do
             uuid <- readExtract "uuid" inputs
