@@ -1,41 +1,31 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Main where
 
--- import Database.SQLite.Simple
-import System.IO
-import GHC.Generics
-
-import Data.Aeson
-import Data.Time.Calendar
-import Servant
+import Data.Text (Text)
+import qualified Data.Text.IO as Text
+import Data.Monoid ((<>))
 
 import Network.Wai
-import Network.Wai.Middleware.Cors
+import Network.Wai.Middleware.Cors (simpleCors)
 import Network.Wai.Handler.Warp
 
 import Control.Monad.Trans.Either
 import Control.Monad.IO.Class
 
-import Data.Text (Text)
-import qualified Data.Text as Text 
-import qualified Data.Text.IO as Text
-
-import Data.Monoid ((<>))
+import Servant
 
 import Data.LogInfo
 import Format.Pretty
 import Utils.Text (showText)
 
--- FormUrlEncoded is used over JSON due to the restrictions on
--- cross-domain requests
+-- FormUrlEncoded is allowed over JSON for cross-domain requests
 type LogAPI = 
-    "log" :> ReqBody '[FormUrlEncoded] LogInfo 
-          :> Post '[FormUrlEncoded] ()
+    "log" :> ReqBody '[FormUrlEncoded, JSON] LogInfo 
+          :> Post '[FormUrlEncoded, JSON] ()
 
 main :: IO ()
 main = do

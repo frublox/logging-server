@@ -8,6 +8,9 @@ module Data.LogInfo (
     LogInfo
 ) where
 
+import GHC.Generics
+
+import Data.Aeson
 import Data.Text (Text)
 import qualified Data.Text as Text 
 import qualified Data.Text.IO as Text
@@ -22,12 +25,16 @@ import Utils.Text (showText, readText)
 import Servant
 
 data MessageType = Info | Error 
-    deriving (Show, Read)
+    deriving (Show, Read, Generic)
+
+instance FromJSON MessageType
 
 data Message = Message {
     messageText :: Text,
     messageType :: MessageType
-}
+} deriving (Generic)
+
+instance FromJSON Message
 
 instance Pretty Message where
     prettify (Message msgText msgType) =
@@ -37,12 +44,23 @@ data Device = Device {
     uuid :: Integer,
     platform :: Text,
     model :: Text
-}
+} deriving (Generic)
+
+instance FromJSON Device
 
 type Latitude = Double
 type Longitude = Double
 
 data Location = Coords Latitude Longitude | UnknownLocation
+
+parseLocation :: Text -> Location
+parseLocation text = 
+    case readText text of
+        Nothing -> UnknownLocation
+        Just [lat, long] -> Coords lat long
+
+instance FromJSON Location where
+    parseJSON (Object v) = fmap parseLocation (v .: "location")
 
 instance Pretty Location where
     prettify (Coords lat long) = 
@@ -54,7 +72,9 @@ data LogInfo = LogInfo {
     message :: Message,
     location :: Location,
     device :: Device
-}
+} deriving (Generic)
+
+instance FromJSON LogInfo
 
 instance Pretty LogInfo where
     prettify (LogInfo name msg loc dev) =
@@ -86,10 +106,7 @@ instance FromFormUrlEncoded LogInfo where
 
             return (Message msgText msgType)
 
-        location <- do
-            case readExtract "location" inputs of
-                Left _ -> return UnknownLocation
-                Right [latitude, longitude] -> return (Coords latitude longitude)
+        location <- fmap parseLocation (extract "location" inputs)
 
         device <- do
             uuid <- readExtract "uuid" inputs
@@ -99,3 +116,4 @@ instance FromFormUrlEncoded LogInfo where
             return (Device uuid platform model)
 
         return (LogInfo name message location device)
+

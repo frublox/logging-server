@@ -22,6 +22,7 @@ library
                      , servant-server >= 0.4.4.4
                      , text
                      , spoon
+                     , aeson
 
 
 executable logging-server
