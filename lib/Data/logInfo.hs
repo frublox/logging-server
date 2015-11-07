@@ -16,6 +16,7 @@ import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
 import qualified Data.Text.Read as Text
 import Data.Monoid ((<>))
+import Data.Bifunctor (first)
 
 import Control.Spoon
 
@@ -24,26 +25,28 @@ import Utils.Text (showText, readText)
 
 import Servant
 
-data MessageType = Info | Error 
+data MessageType 
+    = Info 
+    | Error
     deriving (Show, Read, Generic)
 
 instance FromJSON MessageType
 
 data Message = Message 
-	{ messageText :: Text
-	, messageType :: MessageType
-	} deriving (Generic)
+    { messageText :: Text
+    , messageType :: MessageType
+    } deriving (Generic)
 
 instance FromJSON Message
 
 instance Pretty Message where
-	prettify (Message msgText msgType) = showText msgType <> ": " <> msgText
+    prettify (Message msgText msgType) = showText msgType <> ": " <> msgText
 
 data Device = Device
-	{ uuid :: Integer
-	, platform :: Text
-	, model :: Text
-	} deriving (Generic)
+    { uuid :: Integer
+    , platform :: Text
+    , model :: Text
+    } deriving (Generic)
 
 instance FromJSON Device
 
@@ -51,15 +54,15 @@ type Latitude = Double
 type Longitude = Double
 
 data Location 
-	= Coords Latitude Longitude 
-	| UnknownLocation
+    = Coords Latitude Longitude 
+    | UnknownLocation
 
 instance FromJSON Location where
     parseJSON (Object v) = parseLocation `fmap` (v .: "location")
 
 instance Pretty Location where
-	prettify (Coords lat long) = "[" <> showText lat <> ", " <> showText long <> "]"
-	prettify UnknownLocation = "Unknown Location"
+    prettify (Coords lat long) = "[" <> showText lat <> ", " <> showText long <> "]"
+    prettify UnknownLocation = "Unknown Location"
 
 -- | Parse text containing coordinates in list format: "[latitude, longitude]"
 parseLocation :: Text -> Location
@@ -69,52 +72,65 @@ parseLocation text =
         Just [lat, long] -> Coords lat long
 
 data LogInfo = LogInfo 
-	{ appName :: Text
-	, message :: Message
-	, location :: Location
-	, device :: Device
-	} deriving (Generic)
+    { appName :: Text
+    , message :: Message
+    , location :: Location
+    , device :: Device
+    } deriving (Generic)
 
 instance FromJSON LogInfo
 
 instance Pretty LogInfo where
-	prettify (LogInfo name msg loc dev) =
-	        name <> 
-	        " | " <> showText (uuid dev) <>
-	        " | " <> prettify loc <>
-	        " | " <> platform dev <> " - " <> model dev <>
-	        " | " <> prettify msg
-
-extract :: Text -> [(Text, Text)] -> Either String Text
-extract label inputs = 
-    case lookup label inputs of
-        Nothing -> Left ("Couldn't find label " ++ Text.unpack label ++ ".")
-        Just value -> Right value
-
-readExtract :: Read a => Text -> [(Text, Text)] -> Either String a
-readExtract label inputs = do
-    case readText (extract label inputs) of
-    	Nothing -> Left ("Couldn't parse label " ++ Text.unpack label ++ ".")
-    	Just value -> Right value
+    prettify (LogInfo name msg loc dev) = 
+        name <> 
+        " | " <> showText (uuid dev) <>
+        " | " <> prettify loc <>
+        " | " <> platform dev <> " - " <> model dev <>
+        " | " <> prettify msg
 
 instance FromFormUrlEncoded LogInfo where
-    fromFormUrlEncoded inputs = do
-        name <- extract "appName" inputs
+    fromFormUrlEncoded inputs = 
+        -- fromFormUrlEncoded's return type should be Either String LogInfo, but
+        -- logInfo is of type Either Text LogInfo.
+        -- 
+        -- We can fix this by using Bifunctor's `first` function to modify the left side.
+        Text.unpack `first` logInfo
 
-        message <- do
-            msgText <- extract "message" inputs
-            msgType <- readExtract "messageType" inputs
+        -- Defining external functions is for losers, right?
+        where
+            logInfo = do
+                name <- extract "appName"
 
-            return (Message msgText msgType)
+                message <- do
+                    msgText <- extract "message"
+                    msgType <- readExtract "messageType"
 
-        location <- parseLocation `fmap` (extract "location" inputs)
+                    return (Message msgText msgType)
 
-        device <- do
-            uuid <- readExtract "uuid" inputs
-            platform <- extract "platform" inputs
-            model <- extract "model" inputs
+                location <- parseLocation `fmap` (extract "location")
 
-            return (Device uuid platform model)
+                device <- do
+                    uuid <- readExtract "uuid"
+                    platform <- extract "platform"
+                    model <- extract "model"
 
-        return (LogInfo name message location device)
+                    return (Device uuid platform model)
+
+                return (LogInfo name message location device)
+
+                where
+                    -- Essentially `lookup` wrapped in Either
+                    extract :: Text -> Either Text Text
+                    extract label = 
+                        case lookup label inputs of
+                            Nothing -> Left ("Couldn't find label " <> label <> ".")
+                            Just value -> Right value
+
+                    -- Essentially `readText` wrapped in Either and applied to `extract label`
+                    readExtract :: Read a => Text -> Either Text a
+                    readExtract label = do
+                        x <- extract label
+                        case readText x of
+                            Nothing -> Left ("Couldn't parse label " <> label <> ".")
+                            Just value -> Right value
 
