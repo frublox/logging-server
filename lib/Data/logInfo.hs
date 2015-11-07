@@ -29,72 +29,73 @@ data MessageType = Info | Error
 
 instance FromJSON MessageType
 
-data Message = Message {
-    messageText :: Text,
-    messageType :: MessageType
-} deriving (Generic)
+data Message = Message 
+	{ messageText :: Text
+	, messageType :: MessageType
+	} deriving (Generic)
 
 instance FromJSON Message
 
 instance Pretty Message where
-    prettify (Message msgText msgType) =
-        showText msgType <> ": " <> msgText 
+	prettify (Message msgText msgType) = showText msgType <> ": " <> msgText
 
-data Device = Device {
-    uuid :: Integer,
-    platform :: Text,
-    model :: Text
-} deriving (Generic)
+data Device = Device
+	{ uuid :: Integer
+	, platform :: Text
+	, model :: Text
+	} deriving (Generic)
 
 instance FromJSON Device
 
 type Latitude = Double
 type Longitude = Double
 
-data Location = Coords Latitude Longitude | UnknownLocation
+data Location 
+	= Coords Latitude Longitude 
+	| UnknownLocation
 
+instance FromJSON Location where
+    parseJSON (Object v) = parseLocation `fmap` (v .: "location")
+
+instance Pretty Location where
+	prettify (Coords lat long) = "[" <> showText lat <> ", " <> showText long <> "]"
+	prettify UnknownLocation = "Unknown Location"
+
+-- | Parse text containing coordinates in list format: "[latitude, longitude]"
 parseLocation :: Text -> Location
 parseLocation text = 
     case readText text of
         Nothing -> UnknownLocation
         Just [lat, long] -> Coords lat long
 
-instance FromJSON Location where
-    parseJSON (Object v) = fmap parseLocation (v .: "location")
-
-instance Pretty Location where
-    prettify (Coords lat long) = 
-        "[" <> showText lat <> ", " <> showText long <> "]"
-    prettify UnknownLocation = "Unknown Location"
-
-data LogInfo = LogInfo {
-    appName :: Text,
-    message :: Message,
-    location :: Location,
-    device :: Device
-} deriving (Generic)
+data LogInfo = LogInfo 
+	{ appName :: Text
+	, message :: Message
+	, location :: Location
+	, device :: Device
+	} deriving (Generic)
 
 instance FromJSON LogInfo
 
 instance Pretty LogInfo where
-    prettify (LogInfo name msg loc dev) =
-        name <> 
-        " | " <> showText (uuid dev) <>
-        " | " <> prettify loc <>
-        " | " <> platform dev <> " - " <> model dev <>
-        " | " <> prettify msg
+	prettify (LogInfo name msg loc dev) =
+	        name <> 
+	        " | " <> showText (uuid dev) <>
+	        " | " <> prettify loc <>
+	        " | " <> platform dev <> " - " <> model dev <>
+	        " | " <> prettify msg
 
 extract :: Text -> [(Text, Text)] -> Either String Text
 extract label inputs = 
     case lookup label inputs of
-        Nothing -> Left ("Label " ++ Text.unpack label ++ " was not found.")
+        Nothing -> Left ("Couldn't find label " ++ Text.unpack label ++ ".")
         Just value -> Right value
 
 readExtract :: Read a => Text -> [(Text, Text)] -> Either String a
 readExtract label inputs = do
-    value <- extract label inputs
-    maybe (Left ("Couldn't parse " ++ Text.unpack label ++ "."))
-          Right (readText value)
+    case readText (extract label inputs) of
+    	Nothing -> Left ("Couldn't parse label " ++ Text.unpack label ++ ".")
+    	Just value -> Right value
 
 instance FromFormUrlEncoded LogInfo where
     fromFormUrlEncoded inputs = do
@@ -106,7 +107,7 @@ instance FromFormUrlEncoded LogInfo where
 
             return (Message msgText msgType)
 
-        location <- fmap parseLocation (extract "location" inputs)
+        location <- parseLocation `fmap` (extract "location" inputs)
 
         device <- do
             uuid <- readExtract "uuid" inputs

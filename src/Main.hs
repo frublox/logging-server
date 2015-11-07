@@ -5,16 +5,15 @@
 
 module Main where
 
-import Data.Text (Text)
 import qualified Data.Text.IO as Text
 import Data.Monoid ((<>))
 
-import Network.Wai
-import Network.Wai.Middleware.Cors (simpleCors)
-import Network.Wai.Handler.Warp
-
 import Control.Monad.Trans.Either
-import Control.Monad.IO.Class
+import Control.Monad.IO.Class (liftIO)
+
+import qualified Network.Wai as Wai
+import qualified Network.Wai.Middleware.Cors as Wai (simpleCors)
+import qualified Network.Wai.Handler.Warp as Warp
 
 import Servant
 
@@ -22,7 +21,7 @@ import Data.LogInfo
 import Format.Pretty
 import Utils.Text (showText)
 
--- FormUrlEncoded is allowed over JSON for cross-domain requests
+-- | FormUrlEncoded is used over JSON for cross-domain requests
 type LogAPI = 
     "log" :> ReqBody '[FormUrlEncoded, JSON] LogInfo 
           :> Post '[FormUrlEncoded, JSON] ()
@@ -31,12 +30,10 @@ main :: IO ()
 main = do
     let port = 3000
     Text.putStrLn ("Running on port " <> showText port)
-    run port app
+    Warp.run port app
 
--- We're using simpleCors to get around the cross-domain policy
--- Is it safe? Well, um, maybe..
 app :: Application
-app = simpleCors (serve logAPI server)
+app = Wai.simpleCors (serve logAPI server)
 
 logAPI :: Proxy LogAPI
 logAPI = Proxy
