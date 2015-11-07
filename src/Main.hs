@@ -5,6 +5,8 @@
 
 module Main where
 
+import System.Environment (getArgs)
+
 import qualified Data.Text.IO as Text
 import Data.Monoid ((<>))
 
@@ -21,18 +23,18 @@ import Data.LogInfo
 import Format.Pretty
 import Utils.Text (showText)
 
--- | FormUrlEncoded is used over JSON for cross-domain requests
+-- FormUrlEncoded is used instead of JSON for cross-domain requests
 type LogAPI = 
     "log" :> ReqBody '[FormUrlEncoded, JSON] LogInfo 
           :> Post '[FormUrlEncoded, JSON] ()
 
 main :: IO ()
 main = do
-    let port = 3000
+    port <- read `fmap` (head `fmap` getArgs)
     Text.putStrLn ("Running on port " <> showText port)
     Warp.run port app
 
-app :: Application
+app :: Wai.Application
 app = Wai.simpleCors (serve logAPI server)
 
 logAPI :: Proxy LogAPI
