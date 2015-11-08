@@ -35,6 +35,7 @@ executable logging-server
                      , text
                      , aeson
                      , warp
+                     , warp-tls
                      , wai
                      , wai-cors
                      , time

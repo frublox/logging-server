@@ -16,6 +16,7 @@ import Control.Monad.IO.Class (liftIO)
 import qualified Network.Wai as Wai
 import qualified Network.Wai.Middleware.Cors as Wai (simpleCors)
 import qualified Network.Wai.Handler.Warp as Warp
+import qualified Network.Wai.Handler.WarpTLS as Warp
 
 import Servant
 
