@@ -35,18 +35,18 @@ instance FromJSON MessageType
 data Message = Message 
     { messageText :: Text
     , messageType :: MessageType
-    } deriving (Generic)
+    } deriving (Generic, Show)
 
 instance FromJSON Message
 
 instance Pretty Message where
-    prettify (Message msgText msgType) = showText msgType <> ": " <> msgText
+    prettify (Message msgText msgType) = Text.concat [showText msgType, ": ", msgText]
 
 data Device = Device
     { uuid :: Integer
     , platform :: Text
     , model :: Text
-    } deriving (Generic)
+    } deriving (Generic, Show)
 
 instance FromJSON Device
 
@@ -56,12 +56,13 @@ type Longitude = Double
 data Location 
     = Coords Latitude Longitude 
     | UnknownLocation
+    deriving (Show)
 
 instance FromJSON Location where
     parseJSON (Object v) = parseLocation `fmap` (v .: "location")
 
 instance Pretty Location where
-    prettify (Coords lat long) = "[" <> showText lat <> ", " <> showText long <> "]"
+    prettify (Coords lat long) = Text.concat ["[", showText lat, ", ", showText long, "]"]
     prettify UnknownLocation = "Unknown Location"
 
 -- | Parse text containing coordinates in list format: "[latitude, longitude]"
@@ -76,17 +77,19 @@ data LogInfo = LogInfo
     , message :: Message
     , location :: Location
     , device :: Device
-    } deriving (Generic)
+    } deriving (Generic, Show)
 
 instance FromJSON LogInfo
 
 instance Pretty LogInfo where
     prettify (LogInfo name msg loc dev) = 
-        name <> 
-        " | " <> showText (uuid dev) <>
-        " | " <> prettify loc <>
-        " | " <> platform dev <> " - " <> model dev <>
-        " | " <> prettify msg
+        Text.concat [
+            name,
+            " | ", showText (uuid dev),
+            " | ", prettify loc,
+            " | ", platform dev, " - ", model dev,
+            " | ", prettify msg
+        ]
 
 instance FromFormUrlEncoded LogInfo where
     fromFormUrlEncoded inputs = 
@@ -123,14 +126,14 @@ instance FromFormUrlEncoded LogInfo where
                     extract :: Text -> Either Text Text
                     extract label = 
                         case lookup label inputs of
-                            Nothing -> Left ("Couldn't find label " <> label <> ".")
+                            Nothing -> Left $ Text.concat ["Couldn't find label ", label, "."]
                             Just value -> Right value
 
-                    -- Essentially `readText` wrapped in Either and applied to `extract label`
+                    -- Essentially `readText` applied to `extract label`, wrapped in Either
                     readExtract :: Read a => Text -> Either Text a
                     readExtract label = do
                         x <- extract label
                         case readText x of
-                            Nothing -> Left ("Couldn't parse label " <> label <> ".")
+                            Nothing -> Left $ Text.concat ["Couldn't parse label ", label, "."]
                             Just value -> Right value
 

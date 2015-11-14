@@ -37,12 +37,9 @@ main = do
 
 app :: Wai.Application
 app = Wai.simpleCors (serve logAPI server)
-
-logAPI :: Proxy LogAPI
-logAPI = Proxy
-
-server :: Server LogAPI
-server = doLog
+	where
+		logAPI = Proxy :: Proxy LogAPI
+		server = doLog
 
 doLog :: LogInfo -> EitherT ServantErr IO ()
 doLog logInfo = liftIO $ do
