@@ -33,6 +33,7 @@ executable logging-server
                      , logging-server
                      , servant-server >= 0.4.4.4
                      , text
+                     , spoon
                      , aeson
                      , warp
                      , warp-tls

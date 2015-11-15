@@ -7,11 +7,13 @@ module Main where
 
 import System.Environment (getArgs)
 
+import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
 import Data.Monoid ((<>))
 
 import Control.Monad.Trans.Either
 import Control.Monad.IO.Class (liftIO)
+import Control.Spoon
 
 import qualified Network.Wai as Wai
 import qualified Network.Wai.Middleware.Cors as Wai (simpleCors)
@@ -29,17 +31,30 @@ type LogAPI =
     "log" :> ReqBody '[FormUrlEncoded, JSON] LogInfo 
           :> Post '[FormUrlEncoded, JSON] ()
 
+defaultPort = 3000
+
 main :: IO ()
 main = do
-    port <- read `fmap` (head `fmap` getArgs)
-    Text.putStrLn ("Running on port " <> showText port)
+    args <- getArgs
+    port <- getPort args
+
+    Text.putStrLn $ Text.concat ["Running on port ", showText port]
+
     Warp.run port app
+
+getPort :: [String] -> IO Warp.Port
+getPort args = 
+    case (teaspoon . read . head) args of
+        Nothing -> do
+            Text.putStrLn "No port specified. Using default port."
+            return defaultPort
+        Just port -> return port
 
 app :: Wai.Application
 app = Wai.simpleCors (serve logAPI server)
-	where
-		logAPI = Proxy :: Proxy LogAPI
-		server = doLog
+    where
+        logAPI = Proxy :: Proxy LogAPI
+        server = doLog
 
 doLog :: LogInfo -> EitherT ServantErr IO ()
 doLog logInfo = liftIO $ do
