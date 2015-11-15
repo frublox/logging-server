@@ -13,7 +13,7 @@ Logs are held as key-value pairs (usually sent in the form of JSON), labeled:
 - appName
 - message
 - messageType (can be Info or Error)
-- location (can be coordinates in the form of [latitude, longitude]; anything else will be taken as an unknown location)
+- location (can be coordinates in the form of "[latitude, longitude]"; anything else will be taken as an unknown location)
 - uuid (a number)
 - model
 - platform
