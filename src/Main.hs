@@ -10,7 +10,6 @@ import System.Directory
 
 import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
-import Data.Monoid ((<>))
 import Data.Time
 import Data.Time.Format
 
@@ -30,9 +29,10 @@ import Format.Pretty
 import Utils.Text (showText)
 
 -- FormUrlEncoded is used instead of JSON for cross-domain requests
-type LogAPI = 
-    "log" :> ReqBody '[FormUrlEncoded, JSON] LogInfo 
-          :> Post '[FormUrlEncoded, JSON] ()
+type LogAPI 
+    = "log" 
+        :> ReqBody '[FormUrlEncoded, JSON] LogInfo 
+        :> Post '[FormUrlEncoded, JSON] ()
 
 defaultPort :: Warp.Port
 defaultPort = 3000
@@ -62,8 +62,8 @@ getLogDir = do
     args <- getArgs
     case teaspoon (args !! 1) of
         Nothing -> do
-            let msg = Text.concat ["No logging directory specified. Using default: '", Text.pack defaultLogDir]
-            Text.putStrLn msg
+            let msg = concat ["No logging directory specified. Using default: '", defaultLogDir]
+            Text.putStrLn (Text.pack msg)
             return defaultLogDir
         Just dir -> return dir
 
