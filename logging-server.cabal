@@ -1,5 +1,5 @@
 name:                logging-server
-version:             0.1.3.0
+version:             0.1.4.0
 synopsis:            Simple project template from stack
 description:         Please see README.md
 homepage:            http://github.com/githubuser/logging-server#readme
@@ -42,4 +42,5 @@ executable logging-server
                      , time
                      , either
                      , transformers
+                     , directory
                      

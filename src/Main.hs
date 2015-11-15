@@ -6,10 +6,13 @@
 module Main where
 
 import System.Environment (getArgs)
+import System.Directory
 
 import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
 import Data.Monoid ((<>))
+import Data.Time
+import Data.Time.Format
 
 import Control.Monad.Trans.Either
 import Control.Monad.IO.Class (liftIO)
@@ -31,24 +34,38 @@ type LogAPI =
     "log" :> ReqBody '[FormUrlEncoded, JSON] LogInfo 
           :> Post '[FormUrlEncoded, JSON] ()
 
+defaultPort :: Warp.Port
 defaultPort = 3000
+
+defaultLogDir :: FilePath
+defaultLogDir = "logs/"
 
 main :: IO ()
 main = do
-    args <- getArgs
-    port <- getPort args
+    port <- getPort
 
     Text.putStrLn $ Text.concat ["Running on port ", showText port]
 
     Warp.run port app
 
-getPort :: [String] -> IO Warp.Port
-getPort args = 
-    case (teaspoon . read . head) args of
+getPort :: IO Warp.Port
+getPort = do
+    args <- getArgs
+    case teaspoon $ read (args !! 0) of
         Nothing -> do
             Text.putStrLn "No port specified. Using default port."
             return defaultPort
         Just port -> return port
+
+getLogDir :: IO FilePath
+getLogDir = do
+    args <- getArgs
+    case teaspoon (args !! 1) of
+        Nothing -> do
+            let msg = Text.concat ["No logging directory specified. Using default: '", Text.pack defaultLogDir]
+            Text.putStrLn msg
+            return defaultLogDir
+        Just dir -> return dir
 
 app :: Wai.Application
 app = Wai.simpleCors (serve logAPI server)
@@ -63,5 +80,13 @@ doLog logInfo = liftIO $ do
 
 logToFile :: LogInfo -> IO ()
 logToFile logInfo = do
+    dir <- getLogDir
+    createDirectoryIfMissing True dir
+
+    today <- localDay `fmap` (zonedTimeToLocalTime `fmap` getZonedTime)
+    let timestamp = show today
+
+    let filepath = concat [dir, "log_", timestamp, ".txt"]
     let entry = prettify logInfo
-    Text.writeFile "log.txt" entry
+
+    Text.writeFile filepath entry
