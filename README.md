@@ -1,6 +1,6 @@
 # Logging Server
 
-A logging server written for keeping logs of Cordova apps.
+A personal logging server written for keeping logs of Cordova apps.
 
 ## Usage
 
